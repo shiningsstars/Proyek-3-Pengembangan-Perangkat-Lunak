@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreActivityRequest extends FormRequest
+class UpdateActivityRequest extends FormRequest
 {
     public function authorize(): bool
     {

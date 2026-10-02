@@ -3,29 +3,18 @@
 @section('content')
     <h1>Daftar Kegiatan</h1>
 
-    <a href="{{ route('activities.create') }}">
-        Tambah Activity
-    </a>
+    <a href="{{ route('activities.create') }}">Tambah Kegiatan</a>
 
     <form method="GET" action="{{ route('activities.index') }}">
         <label for="status">Filter Status</label>
-
         <select name="status" id="status">
             <option value="">Semua</option>
-
-            <option value="Planned" @selected($status === 'Planned')>
-                Planned
-            </option>
-
-            <option value="Ongoing" @selected($status === 'Ongoing')>
-                Ongoing
-            </option>
-
-            <option value="Done" @selected($status === 'Done')>
-                Done
-            </option>
+            @foreach ($statuses as $option)
+                <option value="{{ $option }}" @selected($status === $option)>
+                    {{ $option }}
+                </option>
+            @endforeach
         </select>
-
         <button type="submit">Filter</button>
     </form>
 
@@ -36,16 +25,9 @@
                     {{ $activity->title }}
                 </a>
             </h2>
-
             <p>{{ $activity->description }}</p>
-
-            <p>
-                Tanggal:
-                {{ $activity->activity_date->format('d-m-Y') }}
-            </p>
-
-            <p>Kategori: {{ $activity->category }}</p>
-
+            <p>Tanggal: {{ $activity->activity_date->format('d-m-Y') }}</p>
+            <p>Kategori: {{ $activity->category->name }}</p>
             <p>Status: {{ $activity->status }}</p>
         </article>
     @empty

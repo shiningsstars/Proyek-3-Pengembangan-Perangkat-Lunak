@@ -5,37 +5,45 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreActivityRequest;
 use App\Http\Requests\UpdateActivityRequest;
 use App\Models\Activity;
+use App\Models\Category;
 use App\Services\ActivityService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class ActivityController extends Controller
 {
-    public function index()
-    {
-        $status = request('status');
+    private const STATUSES = ['Planned', 'Ongoing', 'Done'];
 
-        $validStatuses = ['Planned', 'Ongoing', 'Done'];
+    public function index(Request $request): View
+    {
+        $status = $request->query('status');
 
         $activities = Activity::query()
+            ->with('category')
             ->when(
-                in_array($status, $validStatuses, true),
+                in_array($status, self::STATUSES, true),
                 fn ($query) => $query->where('status', $status)
             )
             ->orderBy('activity_date')
             ->get();
 
-        return view('activities.index', compact('activities', 'status'));
+        return view('activities.index', [
+            'activities' => $activities,
+            'status' => $status,
+            'statuses' => self::STATUSES,
+        ]);
     }
 
-    public function show(Activity $activity)
+    public function show(Activity $activity): View
     {
         return view('activities.show', compact('activity'));
     }
 
-    public function create()
+    public function create(): View
     {
-        return view('activities.create');
+        return view('activities.create', $this->formData());
     }
 
     public function store(
@@ -44,14 +52,16 @@ class ActivityController extends Controller
     ): RedirectResponse {
         $activity = $service->create($request->validated());
 
-        return redirect()
-            ->route('activities.show', $activity)
-            ->with('success', 'Activity berhasil ditambahkan.');
+        return to_route('activities.show', $activity)
+            ->with('success', 'Kegiatan berhasil ditambahkan.');
     }
 
-    public function edit(Activity $activity)
+    public function edit(Activity $activity): View
     {
-        return view('activities.edit', compact('activity'));
+        return view('activities.edit', [
+            'activity' => $activity,
+            ...$this->formData(),
+        ]);
     }
 
     public function update(
@@ -67,17 +77,23 @@ class ActivityController extends Controller
                 ->withInput();
         }
 
-        return redirect()
-            ->route('activities.show', $activity)
-            ->with('success', 'Activity berhasil diperbarui.');
+        return to_route('activities.show', $activity)
+            ->with('success', 'Kegiatan berhasil diperbarui.');
     }
 
-    public function destroy(Activity $activity)
+    public function destroy(Activity $activity): RedirectResponse
     {
         $activity->delete();
 
-        return redirect()
-            ->route('activities.index')
-            ->with('success', 'Activity berhasil dihapus.');
+        return to_route('activities.index')
+            ->with('success', 'Kegiatan berhasil dihapus.');
+    }
+
+    private function formData(): array
+    {
+        return [
+            'categories' => Category::orderBy('name')->get(),
+            'statuses' => self::STATUSES,
+        ];
     }
 }
