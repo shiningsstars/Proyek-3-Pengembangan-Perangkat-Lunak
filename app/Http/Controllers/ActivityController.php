@@ -18,23 +18,17 @@ class ActivityController extends Controller
     {
         $activities = Activity::query()
             ->with('category')
-            ->when($request->filled('search'), function ($query) use ($request) {
-                $search = $request->string('search');
-                $query->where(fn ($q) => $q
-                    ->where('code', 'like', "%{$search}%")
-                    ->orWhere('title', 'like', "%{$search}%"));
-            })
-            ->when($request->filled('category_id'), fn ($query) => $query
-                ->where('category_id', $request->integer('category_id')))
-            ->when($request->filled('status'), fn ($query) => $query
-                ->where('status', $request->string('status')))
-            ->orderBy('start_at', $request->input('sort') === 'oldest' ? 'asc' : 'desc')
-            ->paginate(2)
+            ->search($request->query('search'))
+            ->ofCategory($request->integer('category_id') ?: null)
+            ->ofStatus($request->query('status'))
+            ->sortByStart($request->query('sort'))
+            ->paginate(10)
             ->withQueryString();
 
         return view('activities.index', [
             'activities' => $activities,
             'categories' => Category::orderBy('name')->get(),
+            'statuses' => Activity::STATUSES,
             'filters' => $request->only(['search', 'category_id', 'status', 'sort']),
         ]);
     }
@@ -54,7 +48,7 @@ class ActivityController extends Controller
         $activity = $service->create($request->validated());
 
         return to_route('activities.show', $activity)
-            ->with('success', 'Kegiatan berhasil ditambahkan.');
+            ->with('success', 'Kegiatan berhasil ditambahkan sebagai Draft.');
     }
 
     public function edit(Activity $activity): View
@@ -79,6 +73,25 @@ class ActivityController extends Controller
 
         return to_route('activities.index')
             ->with('success', 'Kegiatan berhasil dihapus.');
+    }
+
+    public function trash(): View
+    {
+        $activities = Activity::onlyTrashed()
+            ->with('category')
+            ->latest('deleted_at')
+            ->paginate(10);
+
+        return view('activities.trash', compact('activities'));
+    }
+
+    public function restore(int $id, ActivityService $service): RedirectResponse
+    {
+        $activity = Activity::onlyTrashed()->findOrFail($id);
+        $service->restore($activity);
+
+        return to_route('activities.trash')
+            ->with('success', 'Kegiatan berhasil direstore.');
     }
 
     public function publish(Activity $activity, ActivityService $service): RedirectResponse
@@ -107,7 +120,6 @@ class ActivityController extends Controller
     {
         return [
             'categories' => Category::orderBy('name')->get(),
-            'statuses'   => ['Draft', 'Published', 'Completed'],
         ];
     }
 }

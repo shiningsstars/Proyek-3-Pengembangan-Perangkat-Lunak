@@ -3,6 +3,10 @@
 @section('content')
     <h1>Daftar Kegiatan</h1>
 
+    @if (session('success'))
+        <p>{{ session('success') }}</p>
+    @endif
+
     <a href="{{ route('activities.create') }}">Tambah Kegiatan</a>
 
     <form method="GET" action="{{ route('activities.index') }}">
@@ -18,7 +22,7 @@
             @foreach ($categories as $category)
                 <option
                     value="{{ $category->id }}"
-                    @selected(($filters['category_id'] ?? null) == $category->id)
+                    @selected((int) ($filters['category_id'] ?? 0) === $category->id)
                 >
                     {{ $category->name }}
                 </option>
@@ -27,7 +31,7 @@
 
         <select name="status">
             <option value="">Semua Status</option>
-            @foreach (['Draft', 'Published', 'Completed'] as $option)
+            @foreach ($statuses as $option)
                 <option value="{{ $option }}" @selected(($filters['status'] ?? null) === $option)>
                     {{ $option }}
                 </option>
@@ -35,11 +39,11 @@
         </select>
 
         <select name="sort">
-            <option value="latest" @selected(($filters['sort'] ?? 'latest') === 'latest')>
-                Tanggal Terbaru
+            <option value="latest" @selected(($filters['sort'] ?? 'latest') !== 'oldest')>
+                Tanggal Mulai Terbaru
             </option>
             <option value="oldest" @selected(($filters['sort'] ?? '') === 'oldest')>
-                Tanggal Terlama
+                Tanggal Mulai Terlama
             </option>
         </select>
 
@@ -53,7 +57,7 @@
                     {{ $activity->code }} - {{ $activity->title }}
                 </a>
             </h2>
-            <p>Kategori: {{ $activity->category->name }}</p>
+            <p>Kategori: {{ $activity->category?->name ?? '-' }}</p>
             <p>Status: {{ $activity->status }}</p>
             <p>
                 Jadwal:
@@ -64,8 +68,10 @@
             <p>Kapasitas: {{ $activity->capacity ?? '-' }}</p>
         </article>
     @empty
-        <p>Belum ada kegiatan.</p>
+        <p>Tidak ada kegiatan yang cocok.</p>
     @endforelse
 
     {{ $activities->links() }}
+
+    <a href="{{ route('activities.trash') }}">Data Terhapus</a>
 @endsection
