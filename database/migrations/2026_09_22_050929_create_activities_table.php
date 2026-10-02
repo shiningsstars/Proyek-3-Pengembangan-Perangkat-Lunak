@@ -13,10 +13,13 @@ return new class extends Migration
             $table->foreignId('category_id')
                 ->constrained()
                 ->restrictOnDelete();
-            $table->string('title', 100);
+            $table->string('code', 30)->unique();
+            $table->string('title', 150);
             $table->text('description')->nullable();
-            $table->date('activity_date');
-            $table->string('status', 20)->default('Planned');
+            $table->dateTime('start_at')->nullable();
+            $table->dateTime('end_at')->nullable();
+            $table->unsignedInteger('capacity')->nullable();
+            $table->string('status', 20)->default('Draft');
             $table->timestamps();
         });
     }

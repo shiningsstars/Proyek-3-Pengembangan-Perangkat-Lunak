@@ -14,25 +14,28 @@ use Illuminate\View\View;
 
 class ActivityController extends Controller
 {
-    private const STATUSES = ['Planned', 'Ongoing', 'Done'];
-
     public function index(Request $request): View
     {
-        $status = $request->query('status');
-
         $activities = Activity::query()
             ->with('category')
-            ->when(
-                in_array($status, self::STATUSES, true),
-                fn ($query) => $query->where('status', $status)
-            )
-            ->orderBy('activity_date')
-            ->get();
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->string('search');
+                $query->where(fn ($q) => $q
+                    ->where('code', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%"));
+            })
+            ->when($request->filled('category_id'), fn ($query) => $query
+                ->where('category_id', $request->integer('category_id')))
+            ->when($request->filled('status'), fn ($query) => $query
+                ->where('status', $request->string('status')))
+            ->orderBy('start_at', $request->input('sort') === 'oldest' ? 'asc' : 'desc')
+            ->paginate(2)
+            ->withQueryString();
 
         return view('activities.index', [
             'activities' => $activities,
-            'status' => $status,
-            'statuses' => self::STATUSES,
+            'categories' => Category::orderBy('name')->get(),
+            'filters' => $request->only(['search', 'category_id', 'status', 'sort']),
         ]);
     }
 
@@ -46,10 +49,8 @@ class ActivityController extends Controller
         return view('activities.create', $this->formData());
     }
 
-    public function store(
-        StoreActivityRequest $request,
-        ActivityService $service
-    ): RedirectResponse {
+    public function store(StoreActivityRequest $request, ActivityService $service): RedirectResponse
+    {
         $activity = $service->create($request->validated());
 
         return to_route('activities.show', $activity)
@@ -64,18 +65,9 @@ class ActivityController extends Controller
         ]);
     }
 
-    public function update(
-        UpdateActivityRequest $request,
-        Activity $activity,
-        ActivityService $service
-    ): RedirectResponse {
-        try {
-            $service->update($activity, $request->validated());
-        } catch (DomainException $exception) {
-            return back()
-                ->withErrors(['status' => $exception->getMessage()])
-                ->withInput();
-        }
+    public function update(UpdateActivityRequest $request, Activity $activity, ActivityService $service): RedirectResponse
+    {
+        $service->update($activity, $request->validated());
 
         return to_route('activities.show', $activity)
             ->with('success', 'Kegiatan berhasil diperbarui.');
@@ -89,11 +81,33 @@ class ActivityController extends Controller
             ->with('success', 'Kegiatan berhasil dihapus.');
     }
 
+    public function publish(Activity $activity, ActivityService $service): RedirectResponse
+    {
+        try {
+            $service->publish($activity);
+        } catch (DomainException $exception) {
+            return back()->withErrors(['status' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', 'Activity berhasil dipublish.');
+    }
+
+    public function complete(Activity $activity, ActivityService $service): RedirectResponse
+    {
+        try {
+            $service->complete($activity);
+        } catch (DomainException $exception) {
+            return back()->withErrors(['status' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', 'Activity berhasil diselesaikan.');
+    }
+
     private function formData(): array
     {
         return [
             'categories' => Category::orderBy('name')->get(),
-            'statuses' => self::STATUSES,
+            'statuses'   => ['Draft', 'Published', 'Completed'],
         ];
     }
 }

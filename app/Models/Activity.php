@@ -9,16 +9,20 @@ class Activity extends Model
 {
     protected $fillable = [
         'category_id',
+        'code',
         'title',
         'description',
-        'activity_date',
+        'start_at',
+        'end_at',
+        'capacity',
         'status',
     ];
 
     protected function casts(): array
     {
         return [
-            'activity_date' => 'date',
+            'start_at' => 'datetime',
+            'end_at' => 'datetime',
         ];
     }
 

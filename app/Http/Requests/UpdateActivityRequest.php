@@ -2,26 +2,19 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateCategoryRequest extends FormRequest
+class UpdateActivityRequest extends StoreActivityRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     public function rules(): array
     {
-        return [
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('categories', 'slug')->ignore($this->route('category')),
-            ],
+        $rules = parent::rules();
+
+        $rules['code'] = [
+            'required', 'string', 'max:30',
+            Rule::unique('activities', 'code')->ignore($this->route('activity')),
         ];
+
+        return $rules;
     }
 }

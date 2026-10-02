@@ -21,6 +21,19 @@
         .error {
             color: red;
         }
+
+        nav[role="navigation"] svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 8px;
+            list-style: none;
+            padding: 0;
+        }
+        
     </style>
 </head>
 <body>
